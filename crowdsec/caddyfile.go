@@ -13,9 +13,10 @@ func parseCaddyfileGlobalOption(d *caddyfile.Dispenser, existingVal interface{})
 	// app level module, because of shared config etc.
 
 	cfg = &config{
-		TickerInterval:  defaultTickerInterval,
-		EnableStreaming: defaultStreamingEnabled,
-		EnableHardFails: defaultHardFailsEnabled,
+		InsecureSkipVerify: defaultInsecureSkipVerifyEnabled,
+		TickerInterval:     defaultTickerInterval,
+		EnableStreaming:    defaultStreamingEnabled,
+		EnableHardFails:    defaultHardFailsEnabled,
 	}
 
 	if !d.Next() {
@@ -38,6 +39,26 @@ func parseCaddyfileGlobalOption(d *caddyfile.Dispenser, existingVal interface{})
 				return nil, d.ArgErr()
 			}
 			cfg.APIKey = d.Val()
+		case "insecure_skip_verify":
+			if d.NextArg() {
+				return nil, d.ArgErr()
+			}
+			cfg.InsecureSkipVerify = true
+		case "cert_path":
+			if !d.NextArg() {
+				return nil, d.ArgErr()
+			}
+			cfg.CertPath = d.Val()
+		case "key_path":
+			if !d.NextArg() {
+				return nil, d.ArgErr()
+			}
+			cfg.KeyPath = d.Val()
+		case "ca_cert_path":
+			if !d.NextArg() {
+				return nil, d.ArgErr()
+			}
+			cfg.CAPath = d.Val()
 		case "ticker_interval":
 			if !d.NextArg() {
 				return nil, d.ArgErr()

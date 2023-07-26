@@ -34,9 +34,10 @@ var (
 )
 
 const (
-	defaultTickerInterval   string = "60s"
-	defaultStreamingEnabled bool   = true
-	defaultHardFailsEnabled bool   = false
+	defaultInsecureSkipVerifyEnabled bool   = false
+	defaultTickerInterval            string = "60s"
+	defaultStreamingEnabled          bool   = true
+	defaultHardFailsEnabled          bool   = false
 )
 
 func init() {
@@ -53,11 +54,15 @@ func (CrowdSec) CaddyModule() caddy.ModuleInfo {
 }
 
 type config struct {
-	APIUrl          string
-	APIKey          string
-	TickerInterval  string
-	EnableStreaming bool
-	EnableHardFails bool
+	APIUrl             string
+	APIKey             string
+	InsecureSkipVerify bool
+	CertPath           string
+	KeyPath            string
+	CAPath             string
+	TickerInterval     string
+	EnableStreaming    bool
+	EnableHardFails    bool
 }
 
 // CrowdSec is a Caddy App that functions as a CrowdSec bouncer. It acts
@@ -69,6 +74,14 @@ type CrowdSec struct {
 	APIUrl string `json:"api_url,omitempty"`
 	// APIKey for the CrowdSec Local API
 	APIKey string `json:"api_key"`
+	// InsecureSkipVerify for skip auto-sign cert verification
+	InsecureSkipVerify *bool `json:"insecure_skip_verify"`
+	// CertPath for the CrowdSec Local API
+	CertPath string `json:"cert_path"`
+	// KeyPath for the CrowdSec Local API
+	KeyPath string `json:"key_path"`
+	// CAPath for the CrowdSec Local API
+	CAPath string `json:"ca_cert_path"`
 	// TickerInterval is the interval the StreamBouncer uses for querying
 	// the CrowdSec Local API. Defaults to "10s".
 	TickerInterval string `json:"ticker_interval,omitempty"`
@@ -101,7 +114,7 @@ func (c *CrowdSec) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	bouncer, err := bouncer.New(c.APIKey, c.APIUrl, c.TickerInterval, c.logger)
+	bouncer, err := bouncer.New(c.APIKey, c.APIUrl, c.InsecureSkipVerify, c.CertPath, c.KeyPath, c.CAPath, "", c.logger)
 	if err != nil {
 		return err
 	}
@@ -129,6 +142,10 @@ func (c *CrowdSec) configure() error {
 		// TODO: combine this with the Unmarshaler approach?
 		c.APIUrl = cfg.APIUrl
 		c.APIKey = cfg.APIKey
+		c.InsecureSkipVerify = &cfg.InsecureSkipVerify
+		c.CertPath = cfg.CertPath
+		c.KeyPath = cfg.KeyPath
+		c.CAPath = cfg.CAPath
 		c.TickerInterval = cfg.TickerInterval
 		c.EnableStreaming = &cfg.EnableStreaming
 		c.EnableHardFails = &cfg.EnableHardFails
@@ -145,8 +162,12 @@ func (c *CrowdSec) configure() error {
 		s = s + "/"
 	}
 	c.APIUrl = s
-	if c.APIKey == "" {
-		return errors.New("crowdsec API Key is missing")
+	if c.APIKey == "" && (c.CertPath == "" || c.KeyPath == "" || c.CAPath == "") {
+		return errors.New("crowdsec API Key or Cert/Key/CA paths are missing")
+	}
+	if c.InsecureSkipVerify == nil {
+		value := defaultInsecureSkipVerifyEnabled
+		c.InsecureSkipVerify = &value
 	}
 	if c.TickerInterval == "" {
 		c.TickerInterval = defaultTickerInterval
