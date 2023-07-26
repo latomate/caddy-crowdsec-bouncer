@@ -19,7 +19,7 @@ import (
 	"net"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/hslatman/caddy-crowdsec-bouncer/crowdsec"
+	"github.com/latomate/caddy-crowdsec-bouncer/crowdsec"
 	l4 "github.com/mholt/caddy-l4/layer4"
 	"go.uber.org/zap"
 )

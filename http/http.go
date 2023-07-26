@@ -26,7 +26,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/hslatman/caddy-crowdsec-bouncer/crowdsec"
+	"github.com/latomate/caddy-crowdsec-bouncer/crowdsec"
 	"go.uber.org/zap"
 )
 

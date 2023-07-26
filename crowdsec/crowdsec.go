@@ -26,7 +26,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"go.uber.org/zap"
 
-	"github.com/hslatman/caddy-crowdsec-bouncer/internal/bouncer"
+	"github.com/latomate/caddy-crowdsec-bouncer/internal/bouncer"
 )
 
 var (
