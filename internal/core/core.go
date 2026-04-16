@@ -37,6 +37,10 @@ import (
 const (
 	userAgentName             = "caddy-cs-bouncer"
 	maxNumberOfDecisionsToLog = 10
+	// shutdownWorkerWait bounds how long we block Caddy reload waiting for streaming/metrics
+	// goroutines. If LAPI does not release an HTTP request promptly after context cancel,
+	// we return an error instead of hanging the admin API indefinitely (goroutines may leak).
+	shutdownWorkerWait = 2 * time.Minute
 )
 
 var (
@@ -228,7 +232,25 @@ func (b *Core) Shutdown() error {
 	b.logger.Info("stopping ...", b.zapField())
 
 	b.cancel()
-	b.wg.Wait()
+
+	waitDone := make(chan struct{})
+	go func() {
+		b.wg.Wait()
+		close(waitDone)
+	}()
+
+	select {
+	case <-waitDone:
+	case <-time.After(shutdownWorkerWait):
+		b.logger.Error(
+			"crowdsec workers did not finish before shutdown timeout; admin reload may proceed but background goroutines can leak",
+			b.zapField(),
+			zap.Duration("timeout", shutdownWorkerWait),
+		)
+		b.stopped = true
+		b.logger.Sync() // nolint
+		return fmt.Errorf("crowdsec: shutdown timed out after %s waiting for workers (likely blocked in LAPI HTTP client)", shutdownWorkerWait)
+	}
 
 	// TODO: clean shutdown of the streaming bouncer channel reading
 	//b.store = nil // TODO(hs): setting this to nil without reinstantiating it, leads to errors; do this properly.
