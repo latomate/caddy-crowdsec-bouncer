@@ -104,17 +104,23 @@ const (
 	modeLive   = "live"
 	modePing   = "ping"
 	modeCheck  = "check"
+	// lapiGetStreamCallTimeout caps a single Decisions.GetStream HTTP round trip (headers + body decode).
+	// Without this, a hung LAPI or stuck body read can block Run indefinitely despite parent ctx cancel.
+	lapiGetStreamCallTimeout = 2 * time.Minute
 )
 
 func (b *StreamBouncer) Run(ctx context.Context) {
 	ticker := time.NewTicker(b.TickerIntervalDuration)
+	defer ticker.Stop()
 
 	b.Opts.Startup = true
 
 	getDecisionStream := func() (*models.DecisionsStreamResponse, *apiclient.Response, error) {
-		// Use Run's ctx (not Background) so Shutdown can cancel in-flight LAPI calls;
-		// otherwise wg.Wait blocks until GetStream returns (e.g. slow/hung LAPI).
-		data, resp, err := b.APIClient.Decisions.GetStream(ctx, b.Opts)
+		// Nested timeout: parent ctx (shutdown) plus a hard cap per call so roundTrip/body
+		// cannot block Run past lapiGetStreamCallTimeout.
+		callCtx, cancel := context.WithTimeout(ctx, lapiGetStreamCallTimeout)
+		defer cancel()
+		data, resp, err := b.APIClient.Decisions.GetStream(callCtx, b.Opts)
 		b.MetricsProvider.IncrementTotalBouncerCalls(modeStream)
 		if err != nil {
 			b.MetricsProvider.IncrementTotalBouncerErrors(modeStream)

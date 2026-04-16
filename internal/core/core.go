@@ -40,7 +40,9 @@ const (
 	// shutdownWorkerWait bounds how long we block Caddy reload waiting for streaming/metrics
 	// goroutines. If LAPI does not release an HTTP request promptly after context cancel,
 	// we return an error instead of hanging the admin API indefinitely (goroutines may leak).
-	shutdownWorkerWait = 2 * time.Minute
+	// Must exceed bouncer's per-GetStream timeout (see internal/bouncer/stream.go) so workers
+	// can finish after a timed-out LAPI call.
+	shutdownWorkerWait = 3 * time.Minute
 )
 
 var (
