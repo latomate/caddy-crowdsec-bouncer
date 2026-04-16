@@ -147,9 +147,7 @@ func (b *StreamBouncer) Run(ctx context.Context) {
 			return
 		}
 
-		select {
-		case b.Stream <- data:
-		case <-ctx.Done():
+		if err := streamSend(ctx, b.Stream, data); err != nil {
 			return
 		}
 		break
@@ -169,11 +167,20 @@ func (b *StreamBouncer) Run(ctx context.Context) {
 				log.Error(err)
 				continue
 			}
-			select {
-			case b.Stream <- data:
-			case <-ctx.Done():
+			if err := streamSend(ctx, b.Stream, data); err != nil {
 				return
 			}
 		}
+	}
+}
+
+// streamSend delivers data on ch or returns ctx.Err() if ctx is cancelled first,
+// so Run does not block indefinitely on send when the consumer has stopped.
+func streamSend(ctx context.Context, ch chan *models.DecisionsStreamResponse, data *models.DecisionsStreamResponse) error {
+	select {
+	case ch <- data:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
