@@ -106,7 +106,8 @@ const (
 	modeCheck  = "check"
 	// lapiGetStreamCallTimeout caps a single Decisions.GetStream HTTP round trip (headers + body decode).
 	// Without this, a hung LAPI or stuck body read can block Run indefinitely despite parent ctx cancel.
-	lapiGetStreamCallTimeout = 2 * time.Minute
+	// Keep below Core.shutdownWorkerWait so reload can finish within that budget.
+	lapiGetStreamCallTimeout = 45 * time.Second
 )
 
 func (b *StreamBouncer) Run(ctx context.Context) {

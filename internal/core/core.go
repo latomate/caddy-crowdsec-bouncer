@@ -42,7 +42,7 @@ const (
 	// we return an error instead of hanging the admin API indefinitely (goroutines may leak).
 	// Must exceed bouncer's per-GetStream timeout (see internal/bouncer/stream.go) so workers
 	// can finish after a timed-out LAPI call.
-	shutdownWorkerWait = 3 * time.Minute
+	shutdownWorkerWait = 60 * time.Second
 )
 
 var (
@@ -251,7 +251,7 @@ func (b *Core) Shutdown() error {
 		)
 		b.stopped = true
 		b.logger.Sync() // nolint
-		return fmt.Errorf("crowdsec: shutdown timed out after %s waiting for workers (likely blocked in LAPI HTTP client)", shutdownWorkerWait)
+		return fmt.Errorf("crowdsec: shutdown timed out after %v waiting for workers (likely blocked in LAPI HTTP client)", shutdownWorkerWait)
 	}
 
 	// TODO: clean shutdown of the streaming bouncer channel reading

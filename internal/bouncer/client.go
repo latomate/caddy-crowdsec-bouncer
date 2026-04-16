@@ -45,7 +45,7 @@ func getAPIClient(urlstr string, userAgent string, apiKey string, caPath string,
 		logger.Infof("Using API key auth")
 		transportBase := &http.Transport{
 			// Avoid hanging forever on dead LAPI (helps unblock roundTrip during shutdown).
-			ResponseHeaderTimeout: 2 * time.Minute,
+			ResponseHeaderTimeout: 45 * time.Second,
 		}
 		if apiURL.Scheme == "https" {
 			transportBase.TLSClientConfig = &tls.Config{
@@ -75,7 +75,7 @@ func getAPIClient(urlstr string, userAgent string, apiKey string, caPath string,
 				Certificates:       []tls.Certificate{certificate},
 				InsecureSkipVerify: insecureSkipVerify,
 			},
-			ResponseHeaderTimeout: 2 * time.Minute,
+			ResponseHeaderTimeout: 45 * time.Second,
 		}
 	}
 
