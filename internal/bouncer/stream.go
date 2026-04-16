@@ -147,7 +147,11 @@ func (b *StreamBouncer) Run(ctx context.Context) {
 			return
 		}
 
-		b.Stream <- data
+		select {
+		case b.Stream <- data:
+		case <-ctx.Done():
+			return
+		}
 		break
 	}
 
@@ -165,7 +169,11 @@ func (b *StreamBouncer) Run(ctx context.Context) {
 				log.Error(err)
 				continue
 			}
-			b.Stream <- data
+			select {
+			case b.Stream <- data:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}
 }
