@@ -112,7 +112,9 @@ func (b *StreamBouncer) Run(ctx context.Context) {
 	b.Opts.Startup = true
 
 	getDecisionStream := func() (*models.DecisionsStreamResponse, *apiclient.Response, error) {
-		data, resp, err := b.APIClient.Decisions.GetStream(context.Background(), b.Opts)
+		// Use Run's ctx (not Background) so Shutdown can cancel in-flight LAPI calls;
+		// otherwise wg.Wait blocks until GetStream returns (e.g. slow/hung LAPI).
+		data, resp, err := b.APIClient.Decisions.GetStream(ctx, b.Opts)
 		b.MetricsProvider.IncrementTotalBouncerCalls(modeStream)
 		if err != nil {
 			b.MetricsProvider.IncrementTotalBouncerErrors(modeStream)
