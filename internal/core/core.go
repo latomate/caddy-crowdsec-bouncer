@@ -231,6 +231,7 @@ func (b *Core) Shutdown() error {
 		return nil
 	}
 
+	shutdownStart := time.Now()
 	b.logger.Info("stopping ...", b.zapField())
 
 	b.cancel()
@@ -243,11 +244,16 @@ func (b *Core) Shutdown() error {
 
 	select {
 	case <-waitDone:
+		b.logger.Info("finished",
+			b.zapField(),
+			zap.Duration("shutdown_wait", time.Since(shutdownStart)),
+		)
 	case <-time.After(shutdownWorkerWait):
 		b.logger.Error(
 			"crowdsec workers did not finish before shutdown timeout; admin reload may proceed but background goroutines can leak",
 			b.zapField(),
-			zap.Duration("timeout", shutdownWorkerWait),
+			zap.Duration("shutdown_wait", time.Since(shutdownStart)),
+			zap.Duration("timeout_limit", shutdownWorkerWait),
 		)
 		b.stopped = true
 		b.logger.Sync() // nolint
@@ -258,7 +264,6 @@ func (b *Core) Shutdown() error {
 	//b.store = nil // TODO(hs): setting this to nil without reinstantiating it, leads to errors; do this properly.
 
 	b.stopped = true
-	b.logger.Info("finished", b.zapField())
 	b.logger.Sync() // nolint
 
 	return nil
