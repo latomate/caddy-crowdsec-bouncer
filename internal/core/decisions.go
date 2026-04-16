@@ -25,6 +25,7 @@ func (b *Core) startProcessingDecisions(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				b.logger.Info("processing new and deleted decisions stopped", b.zapField())
+				drainDecisionStream(b.streamingBouncer.Stream)
 				return
 			case decisions := <-b.streamingBouncer.Stream:
 				if decisions == nil {
@@ -80,6 +81,22 @@ func (b *Core) startProcessingDecisions(ctx context.Context) {
 			}
 		}
 	})
+}
+
+// drainDecisionStream receives until the channel is empty or closed, so a
+// producer blocked on send can complete during shutdown.
+func drainDecisionStream(ch chan *models.DecisionsStreamResponse) {
+	for {
+		select {
+		case d, ok := <-ch:
+			if !ok {
+				return
+			}
+			_ = d
+		default:
+			return
+		}
+	}
 }
 
 // add adds a Decision to the storage
